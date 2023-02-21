@@ -1468,6 +1468,12 @@ class WXR_Importer extends WP_Importer {
 				case 'wp:author_last_name':
 					$data['last_name'] = $child->textContent;
 					break;
+				case 'wp:author_meta':
+					$meta_item = $this->parse_meta_node( $child );
+					if ( ! empty( $meta_item ) ) {
+						$meta[] = $meta_item;
+					}
+					break;
 			}
 		}
 
@@ -1568,7 +1574,22 @@ class WXR_Importer extends WP_Importer {
 			$user_id
 		) );
 
-		// TODO: Implement meta handling once WXR includes it
+		// Update user meta.
+		foreach ( $meta as $meta_item ) {
+			$key = $meta_item['key'] ?? false;
+			$value = $meta_item['value'] ?? false;
+
+			// export gets meta straight from the DB so could have a serialized string
+			if ( ! $value ) {
+				$value = maybe_unserialize( $value );
+			}
+
+			if ( ! empty( $key ) ) {
+				update_user_meta( $user_id, $key, $value );
+				do_action( 'import_user_meta', $user_id, $key, $value );
+			}
+		}
+
 		/**
 		 * User processing completed.
 		 *
